@@ -1,6 +1,5 @@
 # About
-
-This repository contains the code used to analyse RNA-seq and ATAC-seq data from stimulated human macrophages, as described in this manuscript:
+This repository contains the code used for the tadalafil study in PDAC mouse models
 
 ## Directories
 * **ATAC** - 
