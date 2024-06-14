@@ -15,5 +15,5 @@ This repository contains the code used for the tadalafil study in PDAC mouse mod
 * **Domino_Analysis - 05D_J1568_domino_MLISTTAD.sh/06_J1568_domino_MLISTTAD.R**
 * **Domino_Analysis - 05D_J1568_domino_VEH.sh/06_J1568_domino_VEH.R**
 * **Domino_Analysis - 07_subject_interactions.sh/07_subject_interactions.R**
-* **Domino_Analysis - Domino_Analysis_01comparisonTable.R**
-* **Domino_Analysis - Domino_Analysis_binaryDFto0123df.R**
+* **Domino_Analysis - 01comparisonTable.R**
+* **Domino_Analysis - binaryDFto0123df.R**
