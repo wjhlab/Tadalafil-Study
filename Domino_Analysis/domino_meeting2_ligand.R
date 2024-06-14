@@ -1,3 +1,4 @@
+#combining the ligand from two filtered groups and merging them into full ligand list
 
 tcell1v2 <- read.csv("Tcell_TopDE_1v2unfiltered.csv")
 tcell1v2$cell_type <- "Tcell"
