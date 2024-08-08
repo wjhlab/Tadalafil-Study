@@ -1,5 +1,4 @@
 # 04_data_preparation_for_domino
-# Jacob Mitchell
 # 12/06/2022
 
 library(Seurat)
