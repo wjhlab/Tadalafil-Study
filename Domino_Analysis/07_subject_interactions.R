@@ -239,7 +239,7 @@ domino_res_files <- list.files(domino_res_dir)
 
 domino_res <- list()
 for(i in domino_res_files){
-  p <- gsub("^J1568_", "",
+  p <- gsub("", "",
             gsub("_domino_unbuilt\\.rds$", "", i))
   domino_res[[p]] <-
     readRDS(
