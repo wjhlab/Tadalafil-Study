@@ -109,7 +109,7 @@ if(!file.exists(paste0(resultpath, "/tadalafil_", "CLIST", "_counts.loom"))){
 
 # Save seurat object as rds
 saveRDS(object = pt_ser_list[["CLIST"]],
-        file = paste0(resultpath, "/J1568_Seurat_", "CLIST", ".rds"))
+        file = paste0(resultpath, "/Seurat_", "CLIST", ".rds"))
 
 
 ser_veh = subset(seurat,subset = group_id == "VEH")
