@@ -13,7 +13,7 @@ module list
 
 DATA_DIR="processed_data/05_pyscenic"
 PT_DIRS=$(ls -d ${DATA_DIR}/*)
-PREFIX="processed_data/05_pyscenic/J1568_"
+PREFIX="processed_data/05_pyscenic/"
 
 for PT in $PT_DIRS; do
   PT_ID=${PT#"$PREFIX"}
