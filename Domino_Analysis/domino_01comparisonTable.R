@@ -19,11 +19,11 @@ DominoInteractions <- setClass(
 
 
 re_list <- readRDS(file = "E:/WJHLab/revised_domino/tadalafil_domino_features.rds")
-dom_clist <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/J1568_CLIST_domino_unbuilt.rds")
-dom_mlist <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/J1568_MLIST_domino_unbuilt.rds")
-dom_mlisttad <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/J1568_MLISTTAD_domino_unbuilt.rds")
-dom_tad <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/J1568_TAD_domino_unbuilt.rds")
-dom_veh <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/J1568_VEH_domino_unbuilt.rds")
+dom_clist <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/CLIST_domino_unbuilt.rds")
+dom_mlist <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/MLIST_domino_unbuilt.rds")
+dom_mlisttad <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/MLISTTAD_domino_unbuilt.rds")
+dom_tad <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/TAD_domino_unbuilt.rds")
+dom_veh <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/VEH_domino_unbuilt.rds")
 
 
 count_interactions <- 
