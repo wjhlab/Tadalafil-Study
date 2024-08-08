@@ -11,7 +11,7 @@
 module load conda_R/4.1.x
 module list
 
-R_SCRIPT="scripts/06_J1568_domino_CLIST.R"
+R_SCRIPT="scripts/06_domino_CLIST.R"
 
 R CMD BATCH $R_SCRIPT
 
