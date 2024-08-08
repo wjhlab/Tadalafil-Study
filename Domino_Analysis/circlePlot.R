@@ -14,10 +14,10 @@ DominoInteractions <- setClass(
   )
 )
 setwd("E:/WJHLab/revised_domino/circusPlot/circusPlot2")
-domino_MLIST <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/J1568_MLIST_domino_unbuilt.rds")
-domino_MLISTTAD <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/J1568_MLISTTAD_domino_unbuilt.rds")
-domino_TAD <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/J1568_TAD_domino_unbuilt.rds")
-domino_VEH <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/J1568_VEH_domino_unbuilt.rds")
+domino_MLIST <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/MLIST_domino_unbuilt.rds")
+domino_MLISTTAD <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/MLISTTAD_domino_unbuilt.rds")
+domino_TAD <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/TAD_domino_unbuilt.rds")
+domino_VEH <- readRDS(file = "E:/WJHLab/revised_domino/new_unbuilt/VEH_domino_unbuilt.rds")
 
 domino_TAD <-
   build_domino(
