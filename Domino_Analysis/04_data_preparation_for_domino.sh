@@ -1,5 +1,5 @@
 #!/bin/bash
-#$ -N J1568_prep_pyscenic_domino
+#$ -N prep_pyscenic_domino
 #$ -cwd
 #$ -pe local 2
 #$ -l h_vmem=30G,mem_free=30G,h_fsize=50G
