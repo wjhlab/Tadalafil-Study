@@ -47,7 +47,7 @@ if(!genes_check){
 # cellphoneDB files downloaded 1:00 pm 6/16/22
 # cellphoneDB V2.0.0
 
-res <- "processed_data/05_pyscenic/J1568_MLIST"
+res <- "processed_data/05_pyscenic/MLIST"
 pt_id <- "MLIST"
 print(res)
 print(pt_id)
@@ -55,7 +55,7 @@ print(pt_id)
 cat(paste0(pt_id), " : Loading Pyscenic Results")
 
 # Patient's Seurat object
-seurat <- readRDS("processed_data/J1568_Seurat_MLIST.rds")
+seurat <- readRDS("processed_data/Seurat_MLIST.rds")
 
 # Pyscenic results data
 auc <- read.table(paste0(res, "/auc_", pt_id, ".csv"),
@@ -80,7 +80,7 @@ domino <- create_domino(signaling_db = "data/cell_db",
                         remove_rec_dropout = FALSE)
 
 # save the unbuilt domino object for changing build parameters
-saveRDS(domino, file = paste0(result_dir, "/J1568_", pt_id, "_domino_unbuilt.rds"))
+saveRDS(domino, file = paste0(result_dir, "/", pt_id, "_domino_unbuilt.rds"))
 
 cat(paste0(pt_id), " : Domino Complete")
 
