@@ -24,7 +24,7 @@ LOOM="loom_files/tadalafil_VEH_counts.loom";
 PT_ID=${LOOM#"$PREFIX"}
 PT_ID=${PT_ID%"$SUFFIX"}
   
-RESULT_DIR="processed_data/05_pyscenic/J1568_${PT_ID}"
+RESULT_DIR="processed_data/05_pyscenic/${PT_ID}"
 GRN="${RESULT_DIR}/adj_${PT_ID}.tsv"
   
 if [ -f "${GRN}" ]
