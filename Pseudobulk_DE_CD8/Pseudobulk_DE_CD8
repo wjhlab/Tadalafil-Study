@@ -1,0 +1,561 @@
+library(scater)
+library(Seurat)
+library(tidyverse)
+library(ggrepel)
+library(ggplot2)
+library(cowplot)
+library(Matrix.utils)
+library(edgeR)
+library(dplyr)
+library(magrittr)
+library(Matrix)
+library(purrr)
+library(reshape2)
+library(S4Vectors)
+library(tibble)
+library(SingleCellExperiment)
+library(pheatmap)
+library(apeglm)
+library(png)
+library(DESeq2)
+library(RColorBrewer)
+library(msigdbr)
+library(fgsea)
+library('readxl')
+library('DESeq2')
+library('sva')
+library('DT')
+library('fgsea')
+library('GSVA')
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(data.table)
+library(Seurat)
+library(RColorBrewer)
+library(SeuratData)
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(MAST)
+library(org.Hs.eg.db)
+set.seed(1234)
+
+# Load Data
+sobj <- readRDS("filtered_sobj_withSampleid.RDS")
+unique(sobj@meta.data$sample_id)
+sobj$QC <- "mouse_TILs"
+sobj@meta.data[1,]
+
+marker <- FindMarkers(sobj, ident.1 = 'Endothelial')
+write.csv(marker,"Endothelial_allCells.csv")
+marker
+unique(sobj@meta.data$orig.ident)
+VlnPlot(sobj, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),group.by = "QC",pt.size = 0, ncol = 3)
+VlnPlot(subset(x=sobj,subset=sample_id=="G5mus1"), features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),group.by = "QC",pt.size = 0, ncol = 3)
+unique(sobj@meta.data$sample_id)
+plot1 = FeaturePlot(sobj,features = c("Arg1"), repel = TRUE)
+plot2 = FeaturePlot(sobj,features = c("Arg1"), repel = TRUE)
+plot3 = FeaturePlot(sobj,features = c("Arg1"), repel = TRUE)
+plot4 = FeaturePlot(sobj,features = c("Arg1"), repel = TRUE)
+plot5 = FeaturePlot(sobj,features = c("Arg1"), repel = TRUE)
+plot6 = FeaturePlot(sobj,features = c("Arg1"), repel = TRUE)
+
+sobj_tcell = subset(x = sobj, subset = cell_type == "Tcell")
+sobj_tcell_G45 = subset(x=sobj_tcell,subset = sample_id == c("G4mus1","G4mus2","G4mus3","G5mus1","G5mus2","G5mus3"))
+plot4=VlnPlot(sobj_tcell_G45, features = 'Ifng', group.by = "sample_id",slot="scale.data",pt.size = 0)+labs(subtitle='Ifng in G4 G5 Tc')+stat_summary(fun.y = mean, geom='crossbar', colour = "BLACK")
+print(plot4)
+
+gene2 = FindMarkers(object=sobj_tcell, group.by = "group_id",ident.1="MLIST",ident.2="MLIST.TAD", test.use = "MAST")
+write.csv(a,"tcell_2gene.csv")
+
+VEH <- readRDS("veh_2.RDS")
+TAD <- readRDS("tad_2.RDS")
+MLIST <- readRDS("mlist_2.RDS")
+MLISTTAD <- readRDS("mlisttad_2.RDS")
+new_tadmlisttad <- readRDS('new_tadmlisttad.rds')
+
+celltype <- c(levels(sobj))
+Ligand <- c()
+treat <- list(MLIST=new_tadmlisttad)
+cell_treat <- unique(sobj@meta.data$cell_treat)
+Ligand4v5 <- data.frame(ligand=NULL,p_val=NULL,avg_log2FC=NULL,pct.1=NULL,pct.2=NULL,p_val_adj=NULL,cell_type=NULL,treatment=NULL,comp=NULL)
+for (df_name in names(treat)){
+    df <- treat[[df_name]]
+    for (i in 1:8){
+        temp <- FindMarkers(object = sobj, ident.1 = paste(celltype[i],"TAD",sep="_"), ident.2 = paste(celltype[i],"MLIST.TAD",sep="_"), features = intersect(rownames(sobj), unique(df$ligand)), group.by = "cell_treat",min.pct = 0.0001,min.cells.feature = 0, logfc.threshold = -Inf)
+        temp$cell_type <- rep(celltype[i],nrow(temp))
+        temp$treatment <- rep(df_name,nrow(temp))
+        Ligand <- c(Ligand,rownames(temp))
+        Ligand4v5 <- rbind(Ligand4v5,temp)
+    }
+}
+Ligand4v5$ligand <- Ligand
+new_list4v5 <- sobj@assays$RNA@data[intersect(rownames(Ligand4v5), rownames(sobj@assays$RNA@data)),]
+cta <- unique(sobj$cell_treat)[grepl("TAD$|MLIST.TAD$", unique(sobj$cell_treat))]
+signaling4v5 <- matrix(0, ncol = length(cta),
+                      nrow = length(rownames(new_list4v5)))
+rownames(signaling4v5) <- rownames(new_list4v5)
+colnames(signaling4v5) <- cta
+for(clust in cta){
+    sig <- rowMeans(new_list4v5[, which(sobj$cell_treat == clust)])
+    # ensure the rowmeans order matches the rownames of the signaling matrix
+    sig <- sig[rownames(signaling4v5)]
+    signaling4v5[, clust] <- sig
+}
+saveRDS(signaling4v5,file = 'tadmlisttad.RDS')
+
+mlist1mlisttad0 <- readRDS('new_mlist1mlisttad0.rds')
+mlisttad1mlist0 <- readRDS('new_mlisttad1mlist0.rds')
+celltype <- c(levels(sobj))
+Ligand <- c()
+treat <- list(MLIST=mlist1mlisttad0,MLISTTAD=mlisttad1mlist0)
+cell_treat <- unique(sobj@meta.data$cell_treat)
+Ligand4v5 <- data.frame(ligand=NULL,p_val=NULL,avg_log2FC=NULL,pct.1=NULL,pct.2=NULL,p_val_adj=NULL,cell_type=NULL,treatment=NULL,comp=NULL)
+for (df_name in names(treat)){
+    df <- treat[[df_name]]
+    for (i in 1:8){
+        temp <- FindMarkers(object = sobj, ident.1 = paste(celltype[i],"MLIST",sep="_"), ident.2 = paste(celltype[i],"MLIST.TAD",sep="_"), features = intersect(rownames(sobj), unique(df$ligand)), group.by = "cell_treat",min.pct = 0.0001,min.cells.feature = 0, logfc.threshold = -Inf)
+        temp$cell_type <- rep(celltype[i],nrow(temp))
+        temp$treatment <- rep(df_name,nrow(temp))
+        Ligand <- c(Ligand,rownames(temp))
+        Ligand4v5 <- rbind(Ligand4v5,temp)
+    }
+}
+Ligand4v5$ligand <- Ligand
+new_list4v5 <- sobj@assays$RNA@data[intersect(rownames(Ligand4v5), rownames(sobj@assays$RNA@data)),]
+cta <- unique(sobj$cell_treat)[grepl("MLIST$|MLIST.TAD$", unique(sobj$cell_treat))]
+signaling4v5 <- matrix(0, ncol = length(cta),
+                      nrow = length(rownames(new_list4v5)))
+rownames(signaling4v5) <- rownames(new_list4v5)
+colnames(signaling4v5) <- cta
+for(clust in cta){
+    sig <- rowMeans(new_list4v5[, which(sobj$cell_treat == clust)])
+    # ensure the rowmeans order matches the rownames of the signaling matrix
+    sig <- sig[rownames(signaling4v5)]
+    signaling4v5[, clust] <- sig
+}
+saveRDS(signaling4v5,file = 'signaling4v5.RDS')
+
+### All included ligand list
+celltype <- c(levels(sobj))
+Ligand <- c()
+treat <- list(VEH=VEH,TAD=TAD)
+cell_treat <- unique(sobj@meta.data$cell_treat)
+Ligand1v2 <- data.frame(ligand=NULL,p_val=NULL,avg_log2FC=NULL,pct.1=NULL,pct.2=NULL,p_val_adj=NULL,cell_type=NULL,treatment=NULL,comp=NULL)
+for (df_name in names(treat)){
+    df <- treat[[df_name]]
+    for (i in 1:8){
+        temp <- FindMarkers(object = sobj, ident.1 = paste(celltype[i],"VEH",sep="_"), ident.2 = paste(celltype[i],"TAD",sep="_"), features = intersect(rownames(sobj), unique(df$ligand)), group.by = "cell_treat",min.pct = 0.0001,min.cells.feature = 0, logfc.threshold = -Inf)
+        temp$cell_type <- rep(celltype[i],nrow(temp))
+        temp$treatment <- rep(df_name,nrow(temp))
+        Ligand <- c(Ligand,rownames(temp))
+        Ligand1v2 <- rbind(Ligand1v2,temp)
+    }
+}
+Ligand1v2$ligand <- Ligand
+celltype <- c(levels(sobj))
+Ligand <- c()
+treat <- list(MLIST=MLIST,MLISTTAD=MLISTTAD)
+cell_treat <- unique(sobj@meta.data$cell_treat)
+Ligand4v5 <- data.frame(ligand=NULL,p_val=NULL,avg_log2FC=NULL,pct.1=NULL,pct.2=NULL,p_val_adj=NULL,cell_type=NULL,treatment=NULL,comp=NULL)
+for (df_name in names(treat)){
+    df <- treat[[df_name]]
+    for (i in 1:8){
+        temp <- FindMarkers(object = sobj, ident.1 = paste(celltype[i],"MLIST",sep="_"), ident.2 = paste(celltype[i],"MLIST.TAD",sep="_"), features = intersect(rownames(sobj), unique(df$ligand)), group.by = "cell_treat",min.pct = 0.0001,min.cells.feature = 0, logfc.threshold = -Inf)
+        temp$cell_type <- rep(celltype[i],nrow(temp))
+        temp$treatment <- rep(df_name,nrow(temp))
+        Ligand <- c(Ligand,rownames(temp))
+
+        Ligand4v5 <- rbind(Ligand4v5,temp)
+    }
+}
+Ligand4v5$ligand <- Ligand
+sigLigand1v2 <- Ligand1v2[abs(Ligand1v2$avg_log2FC)>0.5 & Ligand1v2$p_val_adj < 0.05,]
+sigLigand4v5 <- Ligand4v5[abs(Ligand4v5$avg_log2FC)>0.5 & Ligand4v5$p_val_adj < 0.05,]
+Ligandlist <- c(rownames(Ligand1v2),rownames(Ligand4v5))
+dim(Ligand1v2)
+dim(Ligand4v5)
+length(Ligandlist)
+
+new_list1v2 <- sobj@assays$RNA@data[intersect(rownames(Ligand1v2), rownames(sobj@assays$RNA@data)),]
+new_list4v5 <- sobj@assays$RNA@data[intersect(rownames(Ligand4v5), rownames(sobj@assays$RNA@data)),]
+
+cta <- unique(sobj$cell_treat)[grepl("_[VT]AD$|_[VT]EH$", unique(sobj$cell_treat))]
+signaling1v2 <- matrix(0, ncol = length(cta),
+                      nrow = length(rownames(new_list1v2)))
+rownames(signaling1v2) <- rownames(new_list1v2)
+colnames(signaling1v2) <- cta
+for(clust in cta){
+    sig <- rowMeans(new_list1v2[, which(sobj$cell_treat == clust)])
+    # ensure the rowmeans order matches the rownames of the signaling matrix
+    sig <- sig[rownames(signaling1v2)]
+    signaling1v2[, clust] <- sig
+}
+
+cta <- unique(sobj$cell_treat)[grepl("MLIST", unique(sobj$cell_treat))]
+signaling4v5 <- matrix(0, ncol = length(cta),
+                      nrow = length(rownames(new_list4v5)))
+rownames(signaling4v5) <- rownames(new_list4v5)
+colnames(signaling4v5) <- cta
+for(clust in cta){
+    sig <- rowMeans(new_list4v5[, which(sobj$cell_treat == clust)])
+    # ensure the rowmeans order matches the rownames of the signaling matrix
+    sig <- sig[rownames(signaling4v5)]
+    signaling4v5[, clust] <- sig
+}
+
+saveRDS(signaling1v2,"signaling1v2.RDS")
+saveRDS(signaling4v5,"signaling4v5.RDS")
+saveRDS(sigLigand1v2,"sigLigand1v2.RDS")
+saveRDS(sigLigand4v5,"sigLigand4v5.RDS")
+saveRDS(Ligand1v2,"Ligand1v2.RDS")
+saveRDS(Ligand4v5,"Ligand4v5.RDS")
+saveRDS(new_list1v2,"new_list1v2.RDS")
+saveRDS(new_list4v5,"new_list4v5.RDS")
+
+
+### Get the percent of expression of ligand by receptor
+cl_rec_percent_mlist = NULL
+ser_receptors = unique(mlistTAD_2$receptor)
+for(rec in ser_receptors){
+  rec_percent <- sapply(
+    X = unique(Idents(sobj)),
+    FUN = function(x){
+      # percentage of cells in cluster with non-zero expression of receptor
+      sum(dom_mlist@counts[rec,dom_mlist@clusters == x] > 0) / length(dom_mlist@counts[rec,dom_mlist@clusters == x])
+    }
+  )
+  cl_rec_percent_mlist <- rbind(cl_rec_percent_mlist, rec_percent)
+}
+rownames(cl_rec_percent_mlist) = ser_receptors
+
+cell_clusters <- Idents(sobj)
+cluster_names <- names(table(cell_clusters))
+receptor <- vehTAD_2$recptor
+
+# Get the expression matrix from the 'RNA' assay
+gene_expression <- sobj@assays$RNA@data
+
+# Get the index of the receptor gene in the expression matrix
+receptor_index <- which(rownames(gene_expression) == receptor)
+
+# Create an empty data frame to store the expression values
+gene_expression_table <- data.frame(Cluster = character(),
+                                    Gene = character(),
+                                    Expression = logical(),
+                                    stringsAsFactors = FALSE)
+
+for (cluster_id in unique(cell_clusters)) {
+  cluster_expression <- gene_expression[receptor_index, cell_clusters == cluster_id]
+  is_expressed <- any(cluster_expression > 0)
+  cluster_name <- cluster_names[cluster_id]
+  
+  # Add the expression values to the table
+  gene_expression_table <- rbind(gene_expression_table,
+                                 data.frame(Cluster = cluster_name,
+                                            Gene = receptor,
+                                            Expression = is_expressed,
+                                            stringsAsFactors = FALSE))
+}
+
+cell_clusters <- Idents(sobj)
+
+for (cluster_id in unique(cell_clusters)) {
+  cluster_expression <- gene_expression["Trem2", cell_clusters == cluster_id]
+  is_expressed <- any(cluster_expression > 0)
+  print(paste("Cluster", cluster_id, "Trem2 expression:", is_expressed))
+}
+sum(dom@counts[rec,dom@clusters == x] > 0) / length(dom@counts[rec,dom@clusters == x])
+
+cl_rec_percent = NULL
+ser_receptors = vehTAD_2$recptor
+for(rec in ser_receptors){
+        rec_percent <- sapply(
+          X = Idents(sobj),
+          FUN = function(x){
+            # percentage of cells in cluster with non-zero expression of receptor
+            sum(dom@counts[rec,dom@clusters == x] > 0) / length(dom@counts[rec,dom@clusters == x])
+          }
+        )
+        cl_rec_percent <- rbind(cl_rec_percent, rec_percent)
+      }
+
+## Load Pathways
+## Get Pathways
+hallmark_df = msigdbr(species = "Mus musculus", category = "H")
+hallmark_list = hallmark_df %>% split(x = .$gene_symbol, f = .$gs_name)
+
+oncogenic_df = msigdbr(species = "Mus musculus", category = "C6")
+oncogenic_list = oncogenic_df %>% split(x = .$gene_symbol, f = .$gs_name)
+
+immunologic_df = msigdbr(species = "Mus musculus", category = "C7")
+immunologic_list = immunologic_df %>% split(x = .$gene_symbol, f = .$gs_name)
+
+Curated_df = msigdbr(species = "Mus musculus", category = "C2")
+kegg_list = Curated_df[Curated_df$gs_subcat=="CP:KEGG",] %>% split(x = .$gene_symbol, f = .$gs_name)
+reactome_list = Curated_df[Curated_df$gs_subcat=="CP:REACTOME",] %>% split(x = .$gene_symbol, f = .$gs_name)
+NABA_list = Curated_df[Curated_df$gs_name%in%c("NABA_BASEMENT_MEMBRANES","NABA_COLLAGENS","NABA_CORE_MATRISOME","NABA_ECM_AFFILIATED","NABA_ECM_GLYCOPROTEINS","NABA_ECM_REGULATORS","NABA_MATRISOME","NABA_MATRISOME_ASSOCIATED","NABA_PROTEOGLYCANS","NABA_SECRETED_FACTORS"),] %>% split(x = .$gene_symbol, f = .$gs_name)
+
+Ontology_df = msigdbr(species = "Mus musculus", category = "C5")
+GOBP_list = Ontology_df[Ontology_df$gs_subcat=="GO:BP",] %>% split(x = .$gene_symbol, f = .$gs_name)
+GOMF_list = Ontology_df[Ontology_df$gs_subcat=="GO:MF",] %>% split(x = .$gene_symbol, f = .$gs_name)
+
+groups <- sobj@meta.data[, c("sample_id",  "cell_type", "group_id")]
+pb <- aggregate.Matrix(t(sobj@assays$RNA@counts), # raw RNA counts
+                       groupings = groups, fun = "sum")
+pb_mtx <- t(as.matrix(pb))
+splitf <- sapply(stringr::str_split(rownames(pb), 
+                                    pattern = "_",  
+                                    n = 6), 
+                 `[`, 2)
+pb_list <- split.data.frame(pb, 
+                       factor(splitf)) %>%
+        lapply(function(u) 
+                set_colnames(t(u), 
+                             stringr::str_extract(rownames(u), "(?<=_)[:alnum:]+")))
+groups <- sobj@meta.data[, c("sample_id",  "cell_type", "group_id")]
+pb <- aggregate.Matrix(t(sobj@assays$RNA@counts), # raw RNA counts
+                       groupings = groups, fun = "sum")
+sampAnnot <- data.frame(sample_id = rownames(pb))
+rownames(sampAnnot) <- sampAnnot$sample_id
+sampAnnot$sample_id <- data.frame(str_split_fixed(rownames(sampAnnot), "_", 6))$X1    #sampleid
+sampAnnot$cell_type <- data.frame(str_split_fixed(rownames(sampAnnot), "_", 6))$X2    #cellType
+sampAnnot$group_id <- data.frame(str_split_fixed(rownames(sampAnnot), "_", 6))$X3     #groupid
+pb_mtx <- t(as.matrix(pb))
+splitf <- sapply(stringr::str_split(rownames(pb), 
+                                    pattern = "_",  
+                                    n = 6), 
+                 `[`, 2)
+pb_list <- split.data.frame(pb, 
+                       factor(splitf)) %>%
+        lapply(function(u) 
+                set_colnames(t(u), 
+                             stringr::str_extract(rownames(u), "(?<=_)[:alnum:]+")))
+#saveRDS(pb, "sobj_pseudobulk.rds")
+## Evaluation of sample quality based upon distribution of reads
+boxplot(log2(pb_mtx+1), ylab='log2(counts+1)', 
+        xlab='samples', las=2, cex.axis = 0.25, 
+        border = ifelse(apply(log2(pb_mtx+1),2,quantile,probs=0.75)>0,
+                        'black','red'))
+legend('topleft', pch=c('-'), legend = c('upperquant > 0', 'upperquant < 0'),
+       col=c('black','red'), cex=0.5)
+
+datatable(cbind(sampAnnot,
+                lowCountFilter=apply(log2(pb_mtx+1),2,quantile,probs=0.75)>0))
+## Subset based on upperquant >0
+sampAnnotQuantFilter <- sampAnnot[apply(log2(pb_mtx+1),2,quantile,probs=0.75)>0,]
+pb_mtx_quant <- pb_mtx[,apply(log2(pb_mtx+1),2,quantile,probs=0.75)>0]
+
+## Perform PCA analysis to evaluate sample clustering
+
+# We use PCA of the `vst` normalized data to evaluate sample clustering by cell type. We observe largely robust clustering by Batch.
+
+pcs <- prcomp(t(vstDat),scale=T)
+pca2d(pcs,
+      group=sampAnnotQuantFilter$Batch, legend="topleft")
+title('PCA of vst counts after quantile filtering')
+
+pca2d(pcs,
+      group=sampAnnotQuantFilter$CellType, legend="topleft")
+title('PCA of vst counts after quantile filtering')
+
+# Final CellType Numbers
+table(sampAnnotQuantFilter$CellType, sampAnnotQuantFilter$Arm)
+table(sampAnnotQuantFilter$CellType, sampAnnotQuantFilter$OS)
+table(sampAnnotQuantFilter$OS, sampAnnotQuantFilter$Arm)
+table(sampAnnotQuantFilter$Arm)
+table(sampAnnotQuantFilter$OS)
+
+
+### DE analysis
+
+# Set up pseudobulk and DE function
+ARM_DE <- function(CELLTYPE){
+
+##Subset to celltype of interest
+meta <- sampAnnotQuantFilter[sampAnnotQuantFilter$cell_type==CELLTYPE,]
+counts <- pb_mtx_quant[,rownames(meta)]
+
+##Make dds
+dds <- DESeqDataSetFromMatrix(round(counts), 
+                              colData = meta, 
+                              design = ~group_id)
+
+dds <- DESeq(dds)
+
+##Make Results Comparisons
+one_twoRES <- results(dds, contrast = c("group_id","VEH","TAD"))
+four_fiveRES <- results(dds, contrast = c("group_id",'MLIST','MLIST.TAD'))
+
+
+##LfcShrink -- ashr
+#one_twoRES <- lfcShrink(dds,contrast = c("group_id","VEH","TAD"), 
+#                   res=one_twoRES, type="ashr")
+#four_fiveRES <- lfcShrink(dds,contrast = c("group_id",'MLIST','MLIST.TAD'), 
+#                   res=four_fiveRES, type="ashr")
+
+
+##Filter out NAs
+one_twoRES <- one_twoRES[!is.na(one_twoRES$padj),]
+four_fiveRES <- four_fiveRES[!is.na(four_fiveRES$padj),]
+
+
+##Extract Stats
+one_twoSTATS <- one_twoRES$log2FoldChange
+names(one_twoSTATS) <- rownames(one_twoRES)
+
+four_fiveSTATS <- four_fiveRES$log2FoldChange
+names(four_fiveSTATS) <- rownames(four_fiveRES)
+
+##Run Pathway Analysis
+ONEvTWOgsResults <- list(HALLMARK=fgsea(pathways=hallmark_list, 
+                               stats=one_twoSTATS),
+                    KEGG=fgsea(pathways=kegg_list, 
+                               stats=one_twoSTATS),
+                    REACTOME=fgsea(pathways=reactome_list,
+                                   stats=one_twoSTATS), 
+                    IMMUNESIG=fgsea(pathways=immunologic_list,
+                                     stats=one_twoSTATS),
+                    GOBP = fgsea(pathways=GOBP_list,
+                                     stats=one_twoSTATS),
+                    GOMF = fgsea(pathways=GOMF_list,
+                                 stats=one_twoSTATS),
+                    NABA = fgsea(pathways=NABA_list,
+                                 stats=one_twoSTATS))
+
+FOURvFIVEgsResults <- list(HALLMARK=fgsea(pathways=hallmark_list, 
+                               stats=four_fiveSTATS),
+                    KEGG=fgsea(pathways=kegg_list, 
+                               stats=four_fiveSTATS),
+                    REACTOME=fgsea(pathways=reactome_list,
+                                   stats=four_fiveSTATS), 
+                    IMMUNESIG=fgsea(pathways=immunologic_list,
+                                     stats=four_fiveSTATS),
+                    GOBP = fgsea(pathways=GOBP_list,
+                                     stats=four_fiveSTATS),
+                    GOMF = fgsea(pathways=GOMF_list,
+                                 stats=four_fiveSTATS),
+                    NABA = fgsea(pathways=NABA_list,
+                                 stats=four_fiveSTATS))
+
+vst_counts = vst(dds)  
+
+  return(list(one_twoRES=one_twoRES, ONEvTWOgs=ONEvTWOgsResults, four_fiveRES=four_fiveRES, FOURvFIVEgs=FOURvFIVEgsResults, Meta = meta, vst_counts=vst_counts))
+}
+
+## Macrophage
+Mac_DE <- ARM_DE("Macrophage")
+
+##1v2
+Mac_1v2DE <- Mac_DE$one_twoRES
+
+Mac_ONEvTWO_DEGenes <- row.names(Mac_1v2DE)[Mac_1v2DE$padj < 0.05 &
+                              abs(Mac_1v2DE$log2FoldChange) > 0.5]
+
+Mac_ONEvTWO_TopDE <- Mac_1v2DE[Mac_1v2DE$padj < 0.05 &
+                              abs(Mac_1v2DE$log2FoldChange) > 0.5,]
+
+write.csv(Mac_ONEvTWO_DEGenes, "Macrophage_TopDE_1v2filtered.csv")
+write.csv(Mac_1v2DE,"Macrophage_TopDE_1v2unfiltered.csv")
+
+##4v5
+Mac_4v5DE <- Mac_DE$four_fiveRES
+
+Mac_FOURvFIVE_DEGenes <- row.names(Mac_4v5DE)[Mac_4v5DE$padj < 0.05 &
+                              abs(Mac_4v5DE$log2FoldChange) > 0.5]
+
+Mac_FOURvFIVE_TopDE <- Mac_4v5DE[Mac_4v5DE$padj < 0.05 &
+                              abs(Mac_4v5DE$log2FoldChange) > 0.5,]
+
+write.csv(Mac_FOURvFIVE_TopDE, "Macrophage_TopDE_4v5filtered.csv")
+write.csv(Mac_4v5DE, "Macrophage_TopDE_4v5unfiltered.csv")
+
+##Extract Metadata
+meta_Mac <- Mac_DE$Meta
+ONEvTWOmeta_Mac <- meta_Mac[!meta_Mac$group_id=="CLIST"&
+                            !meta_Mac$group_id=="MLIST"&
+                            !meta_Mac$group_id=="MLIST.TAD",]
+FOURvFIVEmeta_Mac <- meta_Mac[!meta_Mac$group_id=="CLIST"&
+                              !meta_Mac$group_id=="VEH"&
+                              !meta_Mac$group_id=="TAD",]
+
+## Granulocyte
+Gra_DE <- ARM_DE("Granulocyte")
+
+##1v2
+Gra_1v2DE <- Gra_DE$one_twoRES
+
+Gra_ONEvTWO_DEGenes <- row.names(Gra_1v2DE)[Gra_1v2DE$padj < 0.05 &
+                              abs(Gra_1v2DE$log2FoldChange) > 0.5]
+
+Gra_ONEvTWO_TopDE <- Gra_1v2DE[Gra_1v2DE$padj < 0.05 &
+                              abs(Gra_1v2DE$log2FoldChange) > 0.5,]
+
+write.csv(Gra_ONEvTWO_DEGenes, "Granulocyte_TopDE_1v2filtered.csv")
+write.csv(Gra_1v2DE,"Granulocyte_TopDE_1v2unfiltered.csv")
+
+##4v5
+Gra_4v5DE <- Gra_DE$four_fiveRES
+
+Gra_FOURvFIVE_DEGenes <- row.names(Gra_4v5DE)[Gra_4v5DE$padj < 0.05 &
+                              abs(Gra_4v5DE$log2FoldChange) > 0.5]
+
+Gra_FOURvFIVE_TopDE <- Gra_4v5DE[Gra_4v5DE$padj < 0.05 &
+                              abs(Gra_4v5DE$log2FoldChange) > 0.5,]
+
+write.csv(Gra_FOURvFIVE_TopDE, "Granulocyte_TopDE_4v5filtered.csv")
+write.csv(Gra_4v5DE, "Granulocyte_TopDE_4v5unfiltered.csv")
+
+##Extract Metadata
+meta_Gra <- Gra_DE$Meta
+ONEvTWOmeta_Gra <- meta_Gra[!meta_Gra$group_id=="CLIST"&
+                            !meta_Gra$group_id=="MLIST"&
+                            !meta_Gra$group_id=="MLIST.TAD",]
+FOURvFIVEmeta_Gra <- meta_Gra[!meta_Gra$group_id=="CLIST"&
+                              !meta_Gra$group_id=="VEH"&
+                              !meta_Gra$group_id=="TAD",]
+
+## Tcell
+Tcell_DE <- ARM_DE("Tcell")
+
+##1v2
+Tcell_1v2DE <- Tcell_DE$one_twoRES
+
+Tcell_ONEvTWO_DEGenes <- row.names(Tcell_1v2DE)[Tcell_1v2DE$padj < 0.05 &
+                              abs(Tcell_1v2DE$log2FoldChange) > 0.5]
+
+Tcell_ONEvTWO_TopDE <- Tcell_1v2DE[Tcell_1v2DE$padj < 0.05 &
+                              abs(Tcell_1v2DE$log2FoldChange) > 0.5,]
+
+write.csv(Tcell_ONEvTWO_DEGenes, "Tcell_TopDE_1v2filtered.csv")
+write.csv(Tcell_1v2DE,"Tcell_TopDE_1v2unfiltered.csv")
+
+##4v5
+Tcell_4v5DE <- Tcell_DE$four_fiveRES
+
+Tcell_FOURvFIVE_DEGenes <- row.names(Tcell_4v5DE)[Tcell_4v5DE$padj < 0.05 &
+                              abs(Tcell_4v5DE$log2FoldChange) > 0.5]
+
+Tcell_FOURvFIVE_TopDE <- Tcell_4v5DE[Tcell_4v5DE$padj < 0.05 &
+                              abs(Tcell_4v5DE$log2FoldChange) > 0.5,]
+
+write.csv(Tcell_FOURvFIVE_TopDE, "Tcell_TopDE_4v5filtered.csv")
+write.csv(Tcell_4v5DE, "Tcell_TopDE_4v5unfiltered.csv")
+
+##Extract Metadata
+meta_Tcell <- Tcell_DE$Meta
+ONEvTWOmeta_Tcell <- meta_Tcell[!meta_Tcell$group_id=="CLIST"&
+                            !meta_Tcell$group_id=="MLIST"&
+                            !meta_Tcell$group_id=="MLIST.TAD",]
+FOURvFIVEmeta_Tcell <- meta_Tcell[!meta_Tcell$group_id=="CLIST"&
+                              !meta_Tcell$group_id=="VEH"&
+                              !meta_Tcell$group_id=="TAD",]
+
+saveRDS(Gra_DE,"Gra_DE2.rds")
+saveRDS(Mac_DE,"Mac_DE2.rds")
+saveRDS(Tcell_DE,"Tcell_DE2.rds")
+write.csv(Tcell_DE$four_fiveRES,"test.csv")
+write.csv(Gra_DE$one_twoRES,"test.csv")
+
